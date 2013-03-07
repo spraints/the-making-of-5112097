@@ -16,6 +16,7 @@ namespace ConsoleApplication1
             Describe(f);
             Describe(CheckForQuery(f, "ok"));
             Describe(NullSafeString(f));
+            Describe(AllInOne(f, "ok"));
         }
 
         static Expression<Func<X, bool>> CheckForQuery<X>(Expression<Func<X, string>> e, string query)
@@ -28,6 +29,16 @@ namespace ConsoleApplication1
         {
             var nullSafe = Expression.Coalesce(e.Body, Expression.Constant("")); // Coalesce is the ?? operator
             return Expression.Lambda<Func<X, string>>(nullSafe, e.Parameters);
+        }
+
+        static Expression<Func<X, bool>> AllInOne<X>(Expression<Func<X, string>> e, string query)
+        {
+            return Expression.Lambda<Func<X, bool>>(
+                Expression.Call(
+                    Expression.Coalesce(e.Body, Expression.Constant("")),
+                    typeof(string).GetMethod("Contains"),
+                    Expression.Constant(query)),
+                e.Parameters);
         }
 
         static void Describe<Y>(Expression<Func<Thing, Y>> e)
