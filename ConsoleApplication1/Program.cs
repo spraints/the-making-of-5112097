@@ -15,12 +15,19 @@ namespace ConsoleApplication1
             var f = F<Thing, string>(x => x.Ok);
             Describe(f);
             Describe(CheckForQuery(f, "ok"));
+            Describe(NullSafeString(f));
         }
 
         static Expression<Func<X, bool>> CheckForQuery<X>(Expression<Func<X, string>> e, string query)
         {
             var queryCheck = Expression.Call(e.Body, typeof(String).GetMethod("Contains"), Expression.Constant(query));
             return Expression.Lambda<Func<X, bool>>(queryCheck, e.Parameters);
+        }
+
+        static Expression<Func<X, string>> NullSafeString<X>(Expression<Func<X, string>> e)
+        {
+            var nullSafe = Expression.Coalesce(e.Body, Expression.Constant("")); // Coalesce is the ?? operator
+            return Expression.Lambda<Func<X, string>>(nullSafe, e.Parameters);
         }
 
         static void Describe<Y>(Expression<Func<Thing, Y>> e)
