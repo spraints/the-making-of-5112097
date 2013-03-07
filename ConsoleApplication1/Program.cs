@@ -12,11 +12,16 @@ namespace ConsoleApplication1
 
         static void Main(string[] args)
         {
-            Dump<Thing>(x => x.Ok);
+            Dump<Thing, string>(x => x.Ok);
         }
 
-        static void Dump<X>(Expression<Func<X, string>> e)
+        static void Dump<X, Y>(Expression<Func<X, Y>> e)
         {
+            Console.WriteLine(e.Type);
+            Console.WriteLine(e.Parameters);
+            Console.WriteLine(e.NodeType);
+            Console.WriteLine(e.Body);
+            Console.WriteLine(e);
         }
     }
 }
