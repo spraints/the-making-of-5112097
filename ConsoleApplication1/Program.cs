@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace ConsoleApplication1
 {
@@ -13,11 +14,12 @@ namespace ConsoleApplication1
         static void Main(string[] args)
         {
             var f = F<Thing, string>(x => x.Ok);
+            var q = "ok";
             Describe(f);
-            Describe(CheckForQuery(f, "ok"));
+            Describe(CheckForQuery(f, q));
             Describe(NullSafeString(f));
-            Describe(AllInOne(f, "ok"));
-            Describe(f.Wrap(s => (s ?? "").Contains("ok")));
+            Describe(AllInOne(f, q));
+            Describe(f.Wrap(s => (s ?? "").Contains(q)));
         }
 
         static Expression<Func<X, bool>> CheckForQuery<X>(Expression<Func<X, string>> e, string query)
@@ -103,9 +105,25 @@ namespace ConsoleApplication1
             this.expansion = expansion;
         }
 
-        public override Expression Visit(Expression node)
+        protected override Expression VisitMember(MemberExpression node)
         {
-            return base.Visit(node);
+            if (node.Expression.NodeType == ExpressionType.Constant)
+            {
+                var constant = ((ConstantExpression)node.Expression).Value;
+                if (node.Member is PropertyInfo)
+                {
+                    return Expression.Constant(((PropertyInfo)node.Member).GetValue(constant, new object[0]));
+                }
+                else if (node.Member is FieldInfo)
+                {
+                    return Expression.Constant(((FieldInfo)node.Member).GetValue(constant));
+                }
+                else
+                {
+                    // Not sure what type of member this is?
+                }
+            }
+            return node;
         }
 
         protected override Expression VisitParameter(ParameterExpression node)
