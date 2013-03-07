@@ -3,44 +3,58 @@ using System.Linq.Expressions;
 
 namespace ConsoleApplication1
 {
-    class Program
+    class Thing
     {
-        class Thing
-        {
-            public string Ok { get; set; }
-        }
+        public string Ok { get; set; }
+    }
 
+    static class Program
+    {
         static void Main(string[] args)
         {
             var f = F<Thing, string>(x => x.Ok);
-            Dump(f);
-            var g = Augment(f, "ok");
-            Dump(g);
+            Describe(f);
+            Describe(CheckForQuery(f, "ok"));
         }
 
-        static Expression<Func<X, bool>> Augment<X>(Expression<Func<X, string>> e, string query)
+        static Expression<Func<X, bool>> CheckForQuery<X>(Expression<Func<X, string>> e, string query)
         {
-            Console.WriteLine(Expression.Call(e.Body, typeof(String).GetMethod("Contains"), Expression.Constant(query)));
-            return x => e.Compile()(x).Contains(query);
+            var queryCheck = Expression.Call(e.Body, typeof(String).GetMethod("Contains"), Expression.Constant(query));
+            return Expression.Lambda<Func<X, bool>>(queryCheck, e.Parameters);
         }
 
-        static void Dump<X, Y>(Expression<Func<X, Y>> e)
+        static void Describe<Y>(Expression<Func<Thing, Y>> e)
         {
-            Console.WriteLine("vvvvv");
-            Console.WriteLine(e);
-            DumpExpression(e);
-            Console.WriteLine("^^^^^");
+            Console.WriteLine("");
+            Console.WriteLine("type: " + e.Type);
+            Console.WriteLine("code: " + e);
+            Console.WriteLine("root expression: " + e.Body.NodeType + "(" + e.Body.GetType() + ")");
+            var f = e.Compile();
+            WriteResult(f, "Ok=(null)", new Thing());
+            WriteResult(f, "Ok=\"not\"", new Thing { Ok = "not" });
+            WriteResult(f, "Ok=\"ok\"", new Thing { Ok = "ok" });
         }
 
-        static void DumpExpression(Expression e, string indent = "")
+        static void WriteResult<X, Y>(Func<X, Y> f, string label, X x)
         {
-            var nextIndent = indent + "  ";
-            Console.WriteLine(e.NodeType);
-            Console.WriteLine(e.Type);
+            object result;
+            try
+            {
+                result = f(x);
+                if (result is String)
+                    result = "\"" + result + "\"";
+                if (result == null)
+                    result = "(null)";
+            }
+            catch (Exception e)
+            {
+                result = e;
+            }
+            Console.WriteLine(label + " => " + result);
         }
 
-        // This seemed like the easiest way to do `var f = x => x.Ok`.
-        static new Expression<Func<X, Y>> F<X, Y>(Expression<Func<X, Y>> f)
+        // This seemed like the easiest way to do something like `var f = x => x.Ok`.
+        static Expression<Func<X, Y>> F<X, Y>(Expression<Func<X, Y>> f)
         {
             return f;
         }
