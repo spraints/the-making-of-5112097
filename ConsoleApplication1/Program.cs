@@ -14,23 +14,29 @@ namespace ConsoleApplication1
         {
             var f = F<Thing, string>(x => x.Ok);
             Dump(f);
-            var g = Augment(f);
+            var g = Augment(f, "ok");
             Dump(g);
         }
 
-        static Expression<Func<X, bool>> Augment<X>(Expression<Func<X, string>> e)
+        static Expression<Func<X, bool>> Augment<X>(Expression<Func<X, string>> e, string query)
         {
-            return x => e.Compile()(x).Contains("ok");
+            Console.WriteLine(Expression.Call(e.Body, typeof(String).GetMethod("Contains"), Expression.Constant(query)));
+            return x => e.Compile()(x).Contains(query);
         }
 
         static void Dump<X, Y>(Expression<Func<X, Y>> e)
         {
-            Console.WriteLine("-----");
+            Console.WriteLine("vvvvv");
             Console.WriteLine(e);
-            Console.WriteLine(e.Type);
-            Console.WriteLine(e.Parameters);
+            DumpExpression(e);
+            Console.WriteLine("^^^^^");
+        }
+
+        static void DumpExpression(Expression e, string indent = "")
+        {
+            var nextIndent = indent + "  ";
             Console.WriteLine(e.NodeType);
-            Console.WriteLine(e.Body);
+            Console.WriteLine(e.Type);
         }
 
         // This seemed like the easiest way to do `var f = x => x.Ok`.
