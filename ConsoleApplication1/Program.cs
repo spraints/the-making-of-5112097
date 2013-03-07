@@ -17,6 +17,7 @@ namespace ConsoleApplication1
             Describe(CheckForQuery(f, "ok"));
             Describe(NullSafeString(f));
             Describe(AllInOne(f, "ok"));
+            Describe(f.Wrap(s => (s ?? "").Contains("ok")));
         }
 
         static Expression<Func<X, bool>> CheckForQuery<X>(Expression<Func<X, string>> e, string query)
@@ -39,6 +40,19 @@ namespace ConsoleApplication1
                     typeof(string).GetMethod("Contains"),
                     Expression.Constant(query)),
                 e.Parameters);
+        }
+
+        // This:
+        //    var expr = new Expression<Func<Thing, string>>(thing => thing.Ok);
+        //    var final = expr.Wrap(s => (s ?? "").Contains("ok"));
+        // should be equivalent to:
+        //    var final = new Expression<Func<Thing, bool>>(thing => (thing.Ok ?? "").Contains("ok"));
+        // Note: using inner twice (e.g. `expr.Wrap(s => s + s)`) will execute the inner lambda twice.
+        static Expression<Func<A, C>> Wrap<A, B, C>(this Expression<Func<A, B>> inner, Expression<Func<B, C>> outer)
+        {
+            var injector = new ExpressionInjector(outer.Parameters[0].Name, inner.Body);
+            var converted = injector.Visit(outer.Body);
+            return Expression.Lambda<Func<A, C>>(converted, inner.Parameters);
         }
 
         static void Describe<Y>(Expression<Func<Thing, Y>> e)
@@ -75,6 +89,35 @@ namespace ConsoleApplication1
         static Expression<Func<X, Y>> F<X, Y>(Expression<Func<X, Y>> f)
         {
             return f;
+        }
+    }
+
+    class ExpressionInjector : ExpressionVisitor
+    {
+        string placeholder;
+        Expression expansion;
+
+        public ExpressionInjector(string placeholder, Expression expansion)
+        {
+            this.placeholder = placeholder;
+            this.expansion = expansion;
+        }
+
+        public override Expression Visit(Expression node)
+        {
+            return base.Visit(node);
+        }
+
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            if (node.Name == placeholder)
+            {
+                return expansion;
+            }
+            else
+            {
+                return node;
+            }
         }
     }
 }
